@@ -23,6 +23,7 @@ public:
     virtual bool intersect(Ray& ray) {return false;}
     virtual Type getType(){return GEOMETRY;}
     virtual float getT()const{return -1.0;}
+    virtual void resetT(){}
     float getKa() const{return ka;}
     float getKd() const{return kd;}
     float getKs() const{return ks;}
@@ -50,7 +51,7 @@ private:
 public:
     //Geometry of the sphere (containing all the mandatory members of a geometry)
     Sphere(float radius, Eigen::Vector3f& center): radius(radius), center(center){};
-
+    void resetT() override{t = -1;}
     float getT() const override{return t;}
     bool intersect(Ray& ray) override;
     Type getType() override{return Type::SPHERE;}
@@ -97,6 +98,7 @@ public:
     bool intersect(Ray& ray) override;
     Type getType() override{return Type::RECTANGLE;}
     float getT() const override{return t;}
+    void resetT() override{t = -1;}
     Eigen::Vector3f& getP1(){return p1;}
     Eigen::Vector3f& getP2(){return p2;}
     Eigen::Vector3f& getP3(){return p3;}
@@ -146,36 +148,35 @@ inline bool Rectangle::intersect(Ray &ray) {
 }
 
 inline bool Triangle::intersect(Ray &ray) {
-    //R(t) = P + td where P is the ray origin and d is the ray direction
-    //n . R(t) = d
-    //replacing R(t) by its equation and making t subject of formula
-    //we get t =  (d - n . P)/(n . d)
-    //n is the normalized cross product
-    auto n = (p2 - p1).cross(p3 - p1);
-    //to normalise n , we divide by its magnitude
-    n = n/n.norm();
-    //Now to find d, we simply multiply by any point on the triangle
-    auto d = n.dot(p1);
-    //now to find t
-    auto nDotD = n.dot(ray.getDirection());
-    if(nDotD == 0){
-        //Does not intersect triangle
-        return false;
-    }
-    auto t1 = (d - n.dot(ray.getOrigin()))/(nDotD);
-    if(t1 < 0){
-        //Does not intersect triangle
-        return false;
-    }
-    //Now testing if point of intersection is actually inside the triangle
-    //For this to be true, cond1, cond2, and cond3 should both be greater than zero (barycentric coordinates)
-    //Here q is the point of intersection
-    auto q = ray.at(t1);
-    auto cond1 = ((p2 - p1).cross(q - p1)).dot(n);
-    auto cond2 = ((p3 - p2).cross(q - p2)).dot(n);
-    auto cond3 = ((p1 - p3).cross(q - p3)).dot(n);
-    if(cond1 >=0 && cond2 >= 0 && cond3 >= 0){
-        t = t1;return true;
-    }
-    else return false;
+    // Edges
+    Eigen::Vector3f ab = p2 - p1;
+    Eigen::Vector3f ac = p3 - p1;
+
+    Eigen::Vector3f pvec = ray.getDirection().cross(ac);
+    float det = ab.dot(pvec);
+
+    // If det is very close to zero, not necessarily at 0, the ray is parallel and there is
+    // no intersection or it is negligible
+    if (det < 0.000001)
+        return false; // No intersection
+
+    float invDet = 1.0 / det;
+    Eigen::Vector3f tvec = ray.getOrigin() - p1;
+
+    // "u" is the first barycentric coordinate
+    float u = tvec.dot(pvec) * invDet;
+    // if it is outside of the 0-1 range, the point lies outside of the triangle
+    if (u < 0 || u > 1)
+        return false; // No intersection
+
+    Eigen::Vector3f qvec = tvec.cross(ab);
+
+    // "v" is the second barycentric coordinate
+    float v = ray.getDirection().dot(qvec) * invDet;
+    // if it is outside of the 0-1 range, or u+v > 1, the point lies outside of the triangle
+    if (v < 0 || u + v > 1)
+        return false; // No intersection
+
+    t = ac.dot(qvec) * invDet;
+    return true;
 }

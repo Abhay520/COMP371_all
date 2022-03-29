@@ -368,10 +368,10 @@ void RayTracer::run(){
                 std::cout << "NULL" << std::endl;
             }
         }
-        for(int j = 0; j < imgHeight;j++){
-            for(int i = 0; i < imgWidth; i++) {
+        for(int w = 0; w < imgWidth;w++){
+            for(int h = 0; h < imgHeight; h++) {
                 //Pixel we are looking at
-                Eigen::Vector3f pixel = C + (j * delta + delta / 2) * rightVec - (i * delta + delta / 2) * up;
+                Eigen::Vector3f pixel = C + (w * delta + delta / 2) * rightVec - (h * delta + delta / 2) * up;
                 Ray ray(origin, pixel - origin);
                 bool intersected = false;
                 //Current value of t is infinity
@@ -386,6 +386,7 @@ void RayTracer::run(){
                         closestGeometryPosition = k;
                     }
                 }
+
                 //Determining color of pixel
                 if (intersected) {
                     auto* closestGeometry = scene.getSceneObjects().at(closestGeometryPosition);
@@ -410,15 +411,29 @@ void RayTracer::run(){
                     color = Color(colorVector);
                     //Blinn-Phong light calculation
 
+                    Eigen::Vector3f intersectionPoint = ray.at(closestT);
                     for(auto* light: scene.getSceneLights()){
-                        Eigen::Vector3f newColorVector = color.getColorVector() + calculateColorChangeUsingPhong(ray, closestT, light, normal, closestGeometry);
-                        color = Color(newColorVector);
+                        bool isInShadow = false;
+                        if(light->getType() == LightType::POINT){
+                            auto* pointLight = dynamic_cast<Point*>(light);
+                            Ray shadowRay(intersectionPoint, (pointLight->getCenter() - intersectionPoint));
+                            for (auto geometry : scene.getSceneObjects()) {
+                                if(geometry->intersect(shadowRay)){
+                                    isInShadow = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if(!isInShadow){
+                            Eigen::Vector3f newColorVector = color.getColorVector() + calculateColorChangeUsingPhong(ray, intersectionPoint, light, normal, closestGeometry);
+                            color = Color(newColorVector);
+                        }
                     }
                 }
                 //If ray does not intersect, pixel colour = background colour
                 else color = Color(output->getBKC());
                 //Update buffer
-                color.write(buffer, 3 * i * imgHeight + 3 * j);
+                color.write(buffer, 3 * h * imgWidth + 3 * w);
             }
         }
         //Saving image to ppm file

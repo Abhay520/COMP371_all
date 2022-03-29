@@ -17,8 +17,7 @@ private:
     Scene scene;
     nlohmann::json& json;
     //static void save_ppm(const std::string &file_name, const std::vector<float> &buffer, uint dimx, uint dimy);
-    static Eigen::Vector3f calculateColorChangeUsingPhong(Ray& ray,float closestT, Light* light, Eigen::Vector3f& normal, Geometry* closestGeometry);
-    static Eigen::Vector3f phongShading(Ray& ray,float closestT, Light* light, Eigen::Vector3f& normal, Geometry* closestGeometry);
+    static Eigen::Vector3f calculateColorChangeUsingPhong(Ray& ray,const Eigen::Vector3f& intersectionPoint, Light* light, Eigen::Vector3f& normal, Geometry* closestGeometry);
 };
 
 struct Parser{
@@ -27,10 +26,9 @@ struct Parser{
     static void parseOutput(Scene& scene, nlohmann::json& json);
 };
 
-inline Eigen::Vector3f RayTracer::calculateColorChangeUsingPhong(Ray &ray, float closestT, Light *light, Eigen::Vector3f &normal, Geometry* closestGeometry) {
+inline Eigen::Vector3f RayTracer::calculateColorChangeUsingPhong(Ray &ray,const Eigen::Vector3f& intersectionPoint, Light *light, Eigen::Vector3f &normal, Geometry* closestGeometry) {
     if(light->getType() == LightType::POINT){
         auto* pointLight = dynamic_cast<Point*>(light);
-        Eigen::Vector3f intersectionPoint = ray.at(closestT);
         Eigen::Vector3f  vDirection = (ray.getOrigin() - intersectionPoint).normalized();
         Eigen::Vector3f lDirection = (pointLight->getCenter() - intersectionPoint).normalized();
         Eigen::Vector3f hDirection = (lDirection + vDirection).normalized();
@@ -42,21 +40,10 @@ inline Eigen::Vector3f RayTracer::calculateColorChangeUsingPhong(Ray &ray, float
         return closestGeometry->getDc().cwiseProduct(light->getId()) * closestGeometry->getKd() * cosAngleIncidence +
             closestGeometry->getSc().cwiseProduct(light->getIs()) * closestGeometry->getKs() * blinnPhong;
     }
-    else{
-        std::cout << "Exiting program: Light type not accepted as of right now" << std::endl;
-        exit(1);
-    }
-}
-
-inline Eigen::Vector3f RayTracer::phongShading(Ray &ray, float closestT, Light *light, Eigen::Vector3f &normal, Geometry* closestGeometry){
-    if(light->getType() == LightType::POINT){
-        auto* pointLight = dynamic_cast<Point*>(light);
-        Eigen::Vector3f intersectionPoint = ray.at(closestT);
-        Eigen::Vector3f lightDirection = (pointLight->getCenter() - intersectionPoint).normalized();
-    }
-    else{
-        std::cout << "Exiting program: Light type not accepted as of right now" << std::endl;
-        exit(1);
-    }
+    return Eigen::Vector3f{0,0,0};
+//    else{
+//        std::cout << "Exiting program: Light type not accepted as of right now" << std::endl;
+//        exit(1);
+//    }
 }
 
