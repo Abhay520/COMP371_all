@@ -57,7 +57,7 @@ inline Eigen::Vector3f RayTracer::calculateColorChangeUsingPhong(Ray &ray,Output
         Eigen::Vector3f Ids = light->getIs().cwiseProduct(closestGeometry->getSc()) * closestGeometry->getKs()* blinnPhong;
         Color colorIds = Color(Ids);
         // diffuse and specular
-        return colorIDD.getColorVector() + colorIds.getColorVector()
+        return colorIDD.getColorVector() + colorIds.getColorVector();
     }
 
     return Eigen::Vector3f{0,0,0};

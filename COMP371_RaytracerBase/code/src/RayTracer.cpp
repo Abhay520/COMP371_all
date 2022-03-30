@@ -416,7 +416,7 @@ void RayTracer::run(){
                         isInShadow = false;
                         if(light->getType() == LightType::POINT){
                             auto* pointLight = dynamic_cast<Point*>(light);
-                            Ray shadowRay(intersectionPoint, (pointLight->getCenter() - intersectionPoint));
+                            Ray shadowRay(intersectionPoint, (pointLight->getCenter() - intersectionPoint).normalized());
                             for (auto geometry : scene.getSceneObjects()) {
                                 if(geometry->intersect(shadowRay) && geometry->getT() >= 0){
                                     isInShadow = true;
