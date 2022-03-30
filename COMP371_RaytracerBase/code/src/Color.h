@@ -39,8 +39,32 @@ public:
     }
     void set(Color& color){colorVector << color.getRed(), color.getGreen(), color.getBlue();}
     void write(std::vector<double>& buffer, int position){
-        buffer[position] = colorVector.x();
-        buffer[position+1] = colorVector.y();
-        buffer[position+2] = colorVector.z();
+        if(colorVector.x() < 0){
+            buffer[position] = 0;
+        }
+        else if(colorVector.x() > 1){
+            buffer[position] = 1;
+        }
+        else{
+            buffer[position] = colorVector.x();
+        }
+        if(colorVector.y() < 0){
+            buffer[position + 1] = 0;
+        }
+        else if(colorVector.y() > 1){
+            buffer[position + 1] = 1;
+        }
+        else{
+            buffer[position + 1] = colorVector.y();
+        }
+        if(colorVector.z() < 0){
+            buffer[position  + 2] = 0;
+        }
+        else if(colorVector.z() > 1){
+            buffer[position + 2] = 1;
+        }
+        else{
+            buffer[position + 2] = colorVector.z();
+        }
     }
 };

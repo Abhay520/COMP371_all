@@ -24,7 +24,7 @@ int test_json(nlohmann::json& j);
     
 int main()
 {
-    std::ifstream t("/home/abhay/Documents/Projects/COMP371_all/COMP371_RaytracerBase/code/assets/test_scene3.json");
+    std::ifstream t("/home/abhay/Documents/Projects/COMP371_all/COMP371_RaytracerBase/code/assets/test_scene3B.json");
     std::stringstream buffer;
     buffer << t.rdbuf();
     nlohmann::json j = nlohmann::json::parse(buffer.str());

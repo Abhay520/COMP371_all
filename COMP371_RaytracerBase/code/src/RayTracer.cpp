@@ -374,6 +374,7 @@ void RayTracer::run(){
                 Eigen::Vector3f pixel = C + (w * delta + delta / 2) * rightVec - (h * delta + delta / 2) * up;
                 Ray ray(origin, pixel - origin);
                 bool intersected = false;
+                bool isInShadow = false;
                 //Current value of t is infinity
                 float closestT = std::numeric_limits<float>::infinity();
                 int closestGeometryPosition = -1;
@@ -389,6 +390,7 @@ void RayTracer::run(){
 
                 //Determining color of pixel
                 if (intersected) {
+                    Eigen::Vector3f intersectionPoint = ray.at(closestT);
                     auto* closestGeometry = scene.getSceneObjects().at(closestGeometryPosition);
                     //Finding normal of closest geometry
                     Eigen::Vector3f outwardNormal;
@@ -410,22 +412,20 @@ void RayTracer::run(){
                     Eigen::Vector3f colorVector = closestGeometry->getAc().cwiseProduct(output->getAI()) * closestGeometry->getKa();
                     color = Color(colorVector);
                     //Blinn-Phong light calculation
-
-                    Eigen::Vector3f intersectionPoint = ray.at(closestT);
                     for(auto* light: scene.getSceneLights()){
-                        bool isInShadow = false;
+                        isInShadow = false;
                         if(light->getType() == LightType::POINT){
                             auto* pointLight = dynamic_cast<Point*>(light);
                             Ray shadowRay(intersectionPoint, (pointLight->getCenter() - intersectionPoint));
                             for (auto geometry : scene.getSceneObjects()) {
-                                if(geometry->intersect(shadowRay)){
+                                if(geometry->intersect(shadowRay) && geometry->getT() >= 0){
                                     isInShadow = true;
                                     break;
                                 }
                             }
                         }
                         if(!isInShadow){
-                            Eigen::Vector3f newColorVector = color.getColorVector() + calculateColorChangeUsingPhong(ray, intersectionPoint, light, normal, closestGeometry);
+                            Eigen::Vector3f newColorVector = color.getColorVector() + calculateColorChangeUsingPhong(ray, output, intersectionPoint, light, normal, closestGeometry);
                             color = Color(newColorVector);
                         }
                     }

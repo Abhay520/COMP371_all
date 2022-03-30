@@ -65,22 +65,15 @@ public:
 
 //Getting the smallest value of t
 inline bool Sphere::intersect(Ray& ray){
-    Eigen::Vector3f AminusC = ray.getOrigin() - center;
-    auto h = ray.getDirection().dot(AminusC);
-    auto a = ray.getDirection().dot(ray.getDirection());
-    auto c = AminusC.dot(AminusC) - radius*radius;
-    auto discriminant = h * h - a*c;
-    if(discriminant < 0)return false;
-    float t1 = (-h + sqrt(discriminant))/a;
-    float t2 = (-h - sqrt(discriminant))/a;
-    if(t1 > t2)std::swap(t1,t2);
-    if(t1 < 0){
-        t1 = t2; // if t1 is negative, using t2 instead
-        //If both are negative, the ray does not intersect sphere
-        if(t1 < 0)return false;
-    }
-    //Assign sphere's t to smallest t t1
-    t = t1;
+    Eigen::Vector3f difference = ray.getOrigin()- center;
+    auto a = ray.getDirection().squaredNorm();
+    auto half_b = difference.dot(ray.getDirection());
+    auto c = difference.squaredNorm() - radius * radius;
+    auto discriminant = half_b * half_b - a * c;
+    // no intersection
+    if (discriminant < 0) return false;
+        // at least one intersection
+    else t = (float)(-half_b - sqrt(discriminant)) / a;
     return true;
 }
 
@@ -125,58 +118,50 @@ inline bool Rectangle::intersect(Ray &ray) {
     //Breaking the rectangle into two triangles
     Triangle triangle1(p1, p2, p3);
     Triangle triangle2(p1, p3, p4);
-    //If intersect is true, get smallest value of t
-    float t1;
-    bool triangle1Intersect = triangle1.intersect(ray);
-    bool triangle2Intersect = triangle2.intersect(ray);
-    //If only triangle1 intersect or both
-    if(triangle1Intersect){
-        t1 = triangle1.getT();
-        if(triangle2Intersect){
-            if(triangle2.getT() < t1)t1 = triangle2.getT();
-        }
-        t = t1;
-        return true;
+
+    triangle1.intersect(ray);
+    triangle2.intersect(ray);
+
+    if (triangle1.getT() > 0) {
+        t = triangle1.getT();return true;
     }
-        //If only triangle2 intersect
-    else if(triangle2Intersect){
-        t = triangle2.getT();
-        return true;
+    if (triangle2.getT() > 0) {
+        t = triangle2.getT();return true;
     }
-        //If no intersection
-    else return false;
+    // no intersection in either triangles
+    return false;
 }
 
 inline bool Triangle::intersect(Ray &ray) {
-    // Edges
+    // vectors on the triangle
     Eigen::Vector3f ab = p2 - p1;
     Eigen::Vector3f ac = p3 - p1;
 
     Eigen::Vector3f pvec = ray.getDirection().cross(ac);
     float det = ab.dot(pvec);
 
-    // If det is very close to zero, not necessarily at 0, the ray is parallel and there is
-    // no intersection or it is negligible
-    if (det < 0.000001)
-        return false; // No intersection
+    // if the determinant is close to zero it doesn't intersect
+    if (det < 0.0000000000001) return false;
 
-    float invDet = 1.0 / det;
+    float inverseDet = 1 / det;
+
+    // distance vector from ray start to a
     Eigen::Vector3f tvec = ray.getOrigin() - p1;
 
-    // "u" is the first barycentric coordinate
-    float u = tvec.dot(pvec) * invDet;
-    // if it is outside of the 0-1 range, the point lies outside of the triangle
-    if (u < 0 || u > 1)
-        return false; // No intersection
+    // (barycentric coordinate between a and b)
+    // if between 0 and 1 then it exists inside the triangle
+    float u = tvec.dot(pvec) * inverseDet;
+    if (u > 1 || u < 0) return false;
 
     Eigen::Vector3f qvec = tvec.cross(ab);
 
-    // "v" is the second barycentric coordinate
-    float v = ray.getDirection().dot(qvec) * invDet;
-    // if it is outside of the 0-1 range, or u+v > 1, the point lies outside of the triangle
-    if (v < 0 || u + v > 1)
-        return false; // No intersection
+    // (barycentric coordinate between a and c)
+    // if between 0 and 1 then it exists inside the triangle
+    float v = ray.getDirection().dot(qvec) * inverseDet;
+    // if v is less than 0 or u and v sum to greater than one, it is not in the triangle
+    if (u + v > 1 || v < 0) return false;
 
-    t = ac.dot(qvec) * invDet;
+    // it does exist in the triangle, retrieve t
+    t = ac.dot(qvec) * inverseDet;
     return true;
 }
